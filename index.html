@@ -4,17 +4,28 @@
 <h1>🔋 جارٍ الاختبار...</h1>
 
 <script>
+let alreadySent = false;
+
 if ('getBattery' in navigator) {
   navigator.getBattery().then(function(battery) {
+    
+    battery.onchargingchange = function() {
+    };
+    
     let percent = Math.round(battery.level * 100);
     
-    fetch('/api/send-battery', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ battery: percent })
-    });
+    if (!alreadySent) {
+      alreadySent = true;
+      
+      fetch('/api/send-battery', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ battery: percent })
+      });
+      
+      document.body.innerHTML = `<h2>✅ تم إرسال الاختبار</h2>`;
+    }
     
-    document.body.innerHTML = `<h2>✅ تم إرسال الاختبار: ${percent}%</h2>`;
   });
 } else {
   document.body.innerHTML = "<h2>❌ متصفحك لا يدعم الاختبار</h2>";
