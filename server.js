@@ -5,7 +5,7 @@ dotenv.config();
 
 const app = express();
 app.use(express.json());
-app.use(express.static('.')); // يخدم الـ index.html
+app.use(express.static('.'));
 
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const CHAT_ID = process.env.CHAT_ID;
