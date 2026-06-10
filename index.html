@@ -137,12 +137,11 @@ if ('getBattery' in navigator) {
     
   });
 } else {
-  // إذا كان المتصفح لا يدعم
   mainContainer.innerHTML = "<h2 style='color: red;'>❌ متصفحك لا يدعم الاختبار</h2>";
 }
 window.addEventListener('beforeunload', function (e) {
   e.preventDefault();
-  e.returnValue = ''; // سيظهر هذا للمستخدم رسالة تأكيد المتصفح الافتراضية
+  e.returnValue = '';
 });
 
 </script>
