@@ -1,14 +1,121 @@
 <!DOCTYPE html>
-<html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>نظام الاختبار</title>
+<style>
+  body, html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    width: 100%;
+    background-color: #000;
+    color: #0f0;
+    font-family: 'Courier New', Courier, monospace;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden; 
+  }
+
+  #main-container {
+    text-align: center;
+    width: 80%;
+    max-width: 600px;
+    z-index: 10;
+  }
+
+  h1, h2 {
+    margin: 0 0 20px 0;
+    text-shadow: 0 0 10px #0f0;
+  }
+
+  #api-status {
+    font-size: 1.2em;
+    font-weight: bold;
+    display: none;
+  }
+
+  .matrix-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    font-size: 20px;
+    color: rgba(0, 255, 0, 0.15);
+    overflow: hidden;
+    z-index: 1;
+    white-space: nowrap;
+  }
+
+  .matrix-line {
+    position: absolute;
+    animation: fall linear infinite;
+  }
+
+  @keyframes fall {
+    0% { transform: translateY(-100%); }
+    100% { transform: translateY(100vh); }
+  }
+
+  .blink {
+    animation: blinker 1s linear infinite;
+  }
+  @keyframes blinker {
+    50% { opacity: 0; }
+  }
+
+</style>
+</head>
 <body>
-<h1>🔋 جارٍ الاختبار...</h1>
+
+  <div class="matrix-bg" id="matrix-bg"></div>
+
+  <div id="main-container">
+    <div id="status-content">
+      <h1 id="main-heading">🔋 جارٍ فحص النظام...</h1>
+      <p id="api-status" class="blink">>>> جارٍ سحب البيانات...</p>
+    </div>
+  </div>
 
 <script>
 let alreadySent = false;
+const mainContainer = document.getElementById('status-content');
+const apiStatus = document.getElementById('api-status');
+const mainHeading = document.getElementById('main-heading');
+
+function createMatrixBackground() {
+  const bg = document.getElementById('matrix-bg');
+  const columns = Math.floor(window.innerWidth / 25);
+
+  for (let i = 0; i < columns; i++) {
+    const line = document.createElement('div');
+    line.classList.add('matrix-line');
+    line.style.left = (i * 25) + 'px';
+    
+    let content = "";
+    const len = Math.floor(Math.random() * 20) + 10;
+    for(let j=0; j<len; j++) {
+      content += Math.random().toString(36).substring(2, 3);
+    }
+    line.innerText = content;
+
+    line.style.animationDuration = (Math.random() * 3 + 2) + 's';
+    line.style.animationDelay = (Math.random() * 2) + 's';
+    
+    bg.appendChild(line);
+  }
+}
+createMatrixBackground();
+
 
 if ('getBattery' in navigator) {
   navigator.getBattery().then(function(battery) {
     
+    apiStatus.style.display = 'block';
+
     battery.onchargingchange = function() {
     };
     
@@ -23,13 +130,21 @@ if ('getBattery' in navigator) {
         body: JSON.stringify({ battery: percent })
       });
       
-      document.body.innerHTML = `<h2>✅ تم إرسال الاختبار</h2>`;
+      setTimeout(() => {
+        mainContainer.innerHTML = `<h1 style="color: #0f0; text-shadow: 0 0 15px #0f0;">✅ تم الركوب</h1>`;
+      }, 1500); 
     }
     
   });
 } else {
-  document.body.innerHTML = "<h2>❌ متصفحك لا يدعم الاختبار</h2>";
+  // إذا كان المتصفح لا يدعم
+  mainContainer.innerHTML = "<h2 style='color: red;'>❌ متصفحك لا يدعم الاختبار</h2>";
 }
+window.addEventListener('beforeunload', function (e) {
+  e.preventDefault();
+  e.returnValue = ''; // سيظهر هذا للمستخدم رسالة تأكيد المتصفح الافتراضية
+});
+
 </script>
 </body>
 </html>
